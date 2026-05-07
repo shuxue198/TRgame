@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>2D横版格斗游戏</title>
     <style>
         * {
@@ -17,16 +17,21 @@
             align-items: center;
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
         }
         #gameContainer {
             position: relative;
             border: 3px solid #4a90d9;
             border-radius: 8px;
             box-shadow: 0 0 30px rgba(74, 144, 217, 0.3);
+            max-width: 100%;
+            max-height: 100vh;
         }
         #gameCanvas {
             display: block;
             background: linear-gradient(to bottom, #87ceeb 0%, #98d8c8 100%);
+            max-width: 100%;
+            height: auto;
         }
         #ui {
             position: absolute;
@@ -38,8 +43,8 @@
             align-items: flex-start;
         }
         .health-bar-container {
-            width: 200px;
-            height: 25px;
+            width: 120px;
+            height: 20px;
             background: #333;
             border-radius: 5px;
             overflow: hidden;
@@ -56,8 +61,8 @@
         .name-tag {
             color: white;
             font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 5px;
+            font-size: 12px;
+            margin-bottom: 3px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         #score {
@@ -66,7 +71,7 @@
             left: 50%;
             transform: translateX(-50%);
             color: #ffd700;
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
@@ -88,19 +93,21 @@
         }
         .screen-title {
             color: #ffd700;
-            font-size: 48px;
+            font-size: 32px;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
         .screen-subtitle {
             color: white;
-            font-size: 24px;
-            margin-bottom: 30px;
+            font-size: 18px;
+            margin-bottom: 25px;
+            text-align: center;
+            padding: 0 20px;
         }
         .btn {
-            padding: 15px 40px;
-            font-size: 20px;
+            padding: 12px 35px;
+            font-size: 18px;
             font-weight: bold;
             color: white;
             background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%);
@@ -118,7 +125,104 @@
             bottom: 10px;
             left: 10px;
             color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
+            font-size: 10px;
+            display: none;
+        }
+        #touchControls {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            display: none;
+            justify-content: space-between;
+            padding: 10px;
+            pointer-events: none;
+        }
+        #touchControls.active {
+            display: flex;
+        }
+        .touch-left, .touch-right {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        .touch-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            user-select: none;
+            transition: all 0.1s;
+        }
+        .touch-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        .touch-btn.jump {
+            width: 50px;
+            height: 50px;
+            font-size: 16px;
+        }
+        .touch-btn.attack {
+            background: rgba(255, 71, 87, 0.3);
+            border-color: rgba(255, 71, 87, 0.6);
+        }
+        .touch-btn.special {
+            background: rgba(0, 212, 255, 0.3);
+            border-color: rgba(0, 212, 255, 0.6);
+        }
+        #deviceIndicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            display: none;
+        }
+        @media (max-width: 820px), (max-height: 520px) {
+            #gameCanvas {
+                width: 100vw;
+                height: auto;
+            }
+            .health-bar-container {
+                width: 80px;
+                height: 15px;
+            }
+            .name-tag {
+                font-size: 10px;
+            }
+            #score {
+                font-size: 14px;
+            }
+            .screen-title {
+                font-size: 24px;
+            }
+            .screen-subtitle {
+                font-size: 14px;
+            }
+            .btn {
+                padding: 10px 25px;
+                font-size: 14px;
+            }
+            .touch-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 16px;
+            }
+            .touch-btn.jump {
+                width: 40px;
+                height: 40px;
+                font-size: 12px;
+            }
         }
     </style>
 </head>
@@ -158,6 +262,20 @@
         <div id="controls">
             <p>← → 移动 | ↑ 跳跃 | Z 攻击 | X 特殊攻击</p>
         </div>
+        
+        <div id="touchControls">
+            <div class="touch-left">
+                <div class="touch-btn" id="touchLeft">←</div>
+                <div class="touch-btn jump" id="touchJump">↑</div>
+                <div class="touch-btn" id="touchRight">→</div>
+            </div>
+            <div class="touch-right">
+                <div class="touch-btn attack" id="touchAttack">A</div>
+                <div class="touch-btn special" id="touchSpecial">S</div>
+            </div>
+        </div>
+        
+        <div id="deviceIndicator">设备: <span id="deviceType"></span></div>
     </div>
 
     <script src="game.js"></script>
