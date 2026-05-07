@@ -130,31 +130,46 @@
         }
         #touchControls {
             position: absolute;
-            bottom: 10px;
+            bottom: -100px;
             left: 0;
             right: 0;
+            height: 100px;
             display: none;
             justify-content: space-between;
-            padding: 10px;
+            align-items: center;
+            padding: 0 20px;
             pointer-events: none;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
         }
         #touchControls.active {
             display: flex;
         }
-        .touch-left, .touch-right {
-            display: flex;
-            flex-direction: column;
+        .touch-left {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            width: 160px;
+            height: 160px;
+            pointer-events: auto;
+        }
+        .touch-right {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
             gap: 10px;
+            width: 140px;
+            height: 140px;
             pointer-events: auto;
         }
         .touch-btn {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.15);
+            border: 3px solid rgba(255, 255, 255, 0.3);
             color: white;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             display: flex;
             justify-content: center;
@@ -162,23 +177,37 @@
             touch-action: manipulation;
             user-select: none;
             transition: all 0.1s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
         .touch-btn:active {
-            background: rgba(255, 255, 255, 0.4);
-            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(0.92);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
         }
-        .touch-btn.jump {
-            width: 50px;
-            height: 50px;
-            font-size: 16px;
+        .dpad-btn {
+            background: rgba(100, 100, 120, 0.4);
+            border-color: rgba(150, 150, 180, 0.5);
+            font-size: 22px;
         }
-        .touch-btn.attack {
-            background: rgba(255, 71, 87, 0.3);
-            border-color: rgba(255, 71, 87, 0.6);
+        .dpad-center {
+            visibility: hidden;
         }
-        .touch-btn.special {
-            background: rgba(0, 212, 255, 0.3);
-            border-color: rgba(0, 212, 255, 0.6);
+        .action-btn {
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .action-btn.attack {
+            background: rgba(0, 200, 80, 0.4);
+            border-color: rgba(0, 255, 100, 0.6);
+            grid-row: 2;
+            grid-column: 1;
+        }
+        .action-btn.special {
+            background: rgba(255, 150, 0, 0.4);
+            border-color: rgba(255, 200, 50, 0.6);
+            grid-row: 1;
+            grid-column: 2;
         }
         #deviceIndicator {
             position: absolute;
@@ -265,13 +294,19 @@
         
         <div id="touchControls">
             <div class="touch-left">
-                <div class="touch-btn" id="touchLeft">←</div>
-                <div class="touch-btn jump" id="touchJump">↑</div>
-                <div class="touch-btn" id="touchRight">→</div>
+                <div class="touch-btn dpad-btn"></div>
+                <div class="touch-btn dpad-btn" id="touchJump">↑</div>
+                <div class="touch-btn dpad-btn"></div>
+                <div class="touch-btn dpad-btn" id="touchLeft">←</div>
+                <div class="touch-btn dpad-center"></div>
+                <div class="touch-btn dpad-btn" id="touchRight">→</div>
+                <div class="touch-btn dpad-btn"></div>
+                <div class="touch-btn dpad-btn">↓</div>
+                <div class="touch-btn dpad-btn"></div>
             </div>
             <div class="touch-right">
-                <div class="touch-btn attack" id="touchAttack">A</div>
-                <div class="touch-btn special" id="touchSpecial">S</div>
+                <div class="touch-btn action-btn attack" id="touchAttack">A</div>
+                <div class="touch-btn action-btn special" id="touchSpecial">S</div>
             </div>
         </div>
         
