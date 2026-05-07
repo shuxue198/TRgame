@@ -18,11 +18,48 @@ class Game {
         this.keys = {};
         this.particles = [];
         
+        this.isMobile = this.detectMobile();
+        this.setupDeviceUI();
+        
         this.init();
+    }
+    
+    detectMobile() {
+        const check = () => {
+            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const hasMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            const isSmallScreen = window.innerWidth < 768;
+            return hasTouch && (hasMobileUA || isSmallScreen);
+        };
+        
+        const result = check();
+        return result;
+    }
+    
+    setupDeviceUI() {
+        const deviceType = document.getElementById('deviceType');
+        const touchControls = document.getElementById('touchControls');
+        const keyboardControls = document.getElementById('controls');
+        
+        if (this.isMobile) {
+            deviceType.textContent = '手机';
+            touchControls.classList.add('active');
+            keyboardControls.style.display = 'none';
+        } else {
+            deviceType.textContent = '电脑';
+            touchControls.classList.remove('active');
+            keyboardControls.style.display = 'block';
+        }
+        
+        if (window.innerWidth < 820) {
+            this.canvas.style.width = '100%';
+            this.canvas.style.height = 'auto';
+        }
     }
     
     init() {
         this.setupEventListeners();
+        this.setupTouchListeners();
         this.gameLoop();
     }
     
@@ -40,6 +77,63 @@ class Game {
         window.addEventListener('keyup', (e) => {
             this.keys[e.code] = false;
         });
+        
+        window.addEventListener('resize', () => {
+            this.setupDeviceUI();
+        });
+    }
+    
+    setupTouchListeners() {
+        const touchLeft = document.getElementById('touchLeft');
+        const touchRight = document.getElementById('touchRight');
+        const touchJump = document.getElementById('touchJump');
+        const touchAttack = document.getElementById('touchAttack');
+        const touchSpecial = document.getElementById('touchSpecial');
+        
+        const handleTouchStart = (control) => {
+            return (e) => {
+                e.preventDefault();
+                this.keys[control] = true;
+                if (control === 'TouchAttack' && this.gameState === 'playing') {
+                    this.player.attack();
+                }
+                if (control === 'TouchSpecial' && this.gameState === 'playing') {
+                    this.player.specialAttack();
+                }
+            };
+        };
+        
+        const handleTouchEnd = (control) => {
+            return (e) => {
+                e.preventDefault();
+                this.keys[control] = false;
+            };
+        };
+        
+        touchLeft.addEventListener('touchstart', handleTouchStart('ArrowLeft'));
+        touchLeft.addEventListener('touchend', handleTouchEnd('ArrowLeft'));
+        touchLeft.addEventListener('mousedown', handleTouchStart('ArrowLeft'));
+        touchLeft.addEventListener('mouseup', handleTouchEnd('ArrowLeft'));
+        
+        touchRight.addEventListener('touchstart', handleTouchStart('ArrowRight'));
+        touchRight.addEventListener('touchend', handleTouchEnd('ArrowRight'));
+        touchRight.addEventListener('mousedown', handleTouchStart('ArrowRight'));
+        touchRight.addEventListener('mouseup', handleTouchEnd('ArrowRight'));
+        
+        touchJump.addEventListener('touchstart', handleTouchStart('ArrowUp'));
+        touchJump.addEventListener('touchend', handleTouchEnd('ArrowUp'));
+        touchJump.addEventListener('mousedown', handleTouchStart('ArrowUp'));
+        touchJump.addEventListener('mouseup', handleTouchEnd('ArrowUp'));
+        
+        touchAttack.addEventListener('touchstart', handleTouchStart('TouchAttack'));
+        touchAttack.addEventListener('touchend', handleTouchEnd('TouchAttack'));
+        touchAttack.addEventListener('mousedown', handleTouchStart('TouchAttack'));
+        touchAttack.addEventListener('mouseup', handleTouchEnd('TouchAttack'));
+        
+        touchSpecial.addEventListener('touchstart', handleTouchStart('TouchSpecial'));
+        touchSpecial.addEventListener('touchend', handleTouchEnd('TouchSpecial'));
+        touchSpecial.addEventListener('mousedown', handleTouchStart('TouchSpecial'));
+        touchSpecial.addEventListener('mouseup', handleTouchEnd('TouchSpecial'));
     }
     
     update() {
