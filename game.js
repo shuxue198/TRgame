@@ -200,8 +200,9 @@ class Game {
             
             this.createExplosion(this.enemy.x + this.enemy.width / 2, this.enemy.y + this.enemy.height / 2);
             
-            const difficulty = Math.min(this.enemiesDefeated * 0.1, 0.5);
-            this.enemy = new Enemy(this.width - 150, this.height - 150, difficulty);
+            const enhancement = this.enemiesDefeated;
+
+            this.enemy = new Enemy(this.width - 150, this.height - 150, enhancement);
         }
         
         if (this.player.health <= 0) {
@@ -495,32 +496,44 @@ class Player {
 }
 
 class Enemy {
-    constructor(x, y, difficulty = 0) {
+    constructor(x, y, enhancement = 0) {
         this.x = x;
         this.y = y;
         this.width = 50;
         this.height = 80;
         this.velocityX = 0;
         this.velocityY = 0;
-        this.speed = 2 + difficulty;
+        
+        const boost = 1 + enhancement * 0.01;
+        
+        this.speed = 2 * boost;
         this.jumpForce = -10;
         this.isJumping = false;
         
-        this.health = 80 + difficulty * 20;
+        this.health = Math.floor(80 * boost);
         this.maxHealth = this.health;
         
         this.isAttacking = false;
         this.attackTimer = 0;
         this.attackHit = false;
-        this.attackDamage = 10 + difficulty * 5;
+        this.attackDamage = Math.floor(10 * boost);
         
         this.facingRight = false;
-        this.color = '#e74c3c';
+        this.color = this.getColorByEnhancement(enhancement);
         this.attackColor = '#ff6b6b';
         
         this.aiTimer = 0;
         this.aiAction = 'idle';
-        this.difficulty = difficulty;
+        this.enhancement = enhancement;
+        this.boost = boost;
+    }
+    
+    getColorByEnhancement(enhancement) {
+        if (enhancement >= 20) return '#ff00ff';
+        if (enhancement >= 15) return '#00ffff';
+        if (enhancement >= 10) return '#ff4444';
+        if (enhancement >= 5) return '#ff8800';
+        return '#e74c3c';
     }
     
     update(player, maxWidth, maxHeight) {
@@ -529,13 +542,16 @@ class Enemy {
         const dx = player.x - this.x;
         const dy = player.y - this.y;
         
-        if (this.aiTimer > 60) {
+        const aiFrequency = Math.max(30, 60 - this.enhancement);
+        const attackRange = 150 + this.enhancement * 5;
+        const jumpChance = 0.2 + this.enhancement * 0.02;
+        
+        if (this.aiTimer > aiFrequency) {
             this.aiTimer = 0;
-            const rand = Math.random();
             
-            if (Math.abs(dx) < 200) {
+            if (Math.abs(dx) < attackRange) {
                 this.aiAction = 'attack';
-            } else if (Math.abs(dx) < 300 && Math.random() < 0.3 + this.difficulty) {
+            } else if (Math.abs(dx) < 300 && Math.random() < jumpChance) {
                 this.aiAction = 'jump';
             } else {
                 this.aiAction = 'move';
@@ -572,35 +588,6 @@ class Enemy {
         }
         
         this.velocityY += 0.5;
-        
-        this.x += this.velocityX;
-        this.y += this.velocityY;
-        
-        if (this.x < 0) this.x = 0;
-        if (this.x + this.width > maxWidth) this.x = maxWidth - this.width;
-        
-        if (this.y + this.height >= maxHeight - 50) {
-            this.y = maxHeight - 50 - this.height;
-            this.velocityY = 0;
-            this.isJumping = false;
-        }
-        
-        if (this.isAttacking) {
-            this.attackTimer--;
-            if (this.attackTimer <= 0) {
-                this.isAttacking = false;
-                this.attackHit = false;
-            }
-        }
-    }
-    
-    attack() {
-        if (!this.isAttacking) {
-            this.isAttacking = true;
-            this.attackTimer = 12;
-        }
-    }
-    
     takeDamage(damage) {
         this.health -= damage;
         if (this.health < 0) this.health = 0;
