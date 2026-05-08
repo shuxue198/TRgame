@@ -1,39 +1,28 @@
-class Game {
+class game {
+
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.width = this.canvas.width;
         this.height = this.canvas.height;
-        
         this.player = new Player(100, this.height - 150);
         this.enemy = new Enemy(this.width - 150, this.height - 150);
         this.gravity = 0.5;
-        this.friction = 0.8;
-        
         this.score = 0;
         this.gameState = 'start';
-        this.lastEnemySpawn = 0;
         this.enemiesDefeated = 0;
-        
         this.keys = {};
         this.particles = [];
-        
         this.isMobile = this.detectMobile();
         this.setupDeviceUI();
-        
         this.init();
     }
     
     detectMobile() {
-        const check = () => {
-            const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-            const hasMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            const isSmallScreen = window.innerWidth < 768;
-            return hasTouch && (hasMobileUA || isSmallScreen);
-        };
-        
-        const result = check();
-        return result;
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const hasMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isSmallScreen = window.innerWidth < 768;
+        return hasTouch && (hasMobileUA || isSmallScreen);
     }
     
     setupDeviceUI() {
@@ -66,91 +55,42 @@ class Game {
     setupEventListeners() {
         window.addEventListener('keydown', (e) => {
             this.keys[e.code] = true;
-            if (e.code === 'KeyZ' && this.gameState === 'playing') {
-                this.player.attack();
-            }
-            if (e.code === 'KeyX' && this.gameState === 'playing') {
-                this.player.specialAttack();
-            }
+            if (e.code === 'KeyZ' && this.gameState === 'playing') this.player.attack();
+            if (e.code === 'KeyX' && this.gameState === 'playing') this.player.specialAttack();
         });
-        
-        window.addEventListener('keyup', (e) => {
-            this.keys[e.code] = false;
-        });
-        
-        window.addEventListener('resize', () => {
-            this.setupDeviceUI();
-        });
+        window.addEventListener('keyup', (e) => { this.keys[e.code] = false; });
+        window.addEventListener('resize', () => { this.setupDeviceUI(); });
     }
     
     setupTouchListeners() {
-        const touchLeft = document.getElementById('touchLeft');
-        const touchRight = document.getElementById('touchRight');
-        const touchJump = document.getElementById('touchJump');
-        const touchAttack = document.getElementById('touchAttack');
-        const touchSpecial = document.getElementById('touchSpecial');
+        const buttons = { touchLeft: 'ArrowLeft', touchRight: 'ArrowRight', touchJump: 'ArrowUp', touchAttack: 'TouchAttack', touchSpecial: 'TouchSpecial' };
         
-        const handleTouchStart = (control) => {
-            return (e) => {
+        for (const [id, control] of Object.entries(buttons)) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 this.keys[control] = true;
-                if (control === 'TouchAttack' && this.gameState === 'playing') {
-                    this.player.attack();
-                }
-                if (control === 'TouchSpecial' && this.gameState === 'playing') {
-                    this.player.specialAttack();
-                }
-            };
-        };
-        
-        const handleTouchEnd = (control) => {
-            return (e) => {
-                e.preventDefault();
-                this.keys[control] = false;
-            };
-        };
-        
-        touchLeft.addEventListener('touchstart', handleTouchStart('ArrowLeft'));
-        touchLeft.addEventListener('touchend', handleTouchEnd('ArrowLeft'));
-        touchLeft.addEventListener('mousedown', handleTouchStart('ArrowLeft'));
-        touchLeft.addEventListener('mouseup', handleTouchEnd('ArrowLeft'));
-        
-        touchRight.addEventListener('touchstart', handleTouchStart('ArrowRight'));
-        touchRight.addEventListener('touchend', handleTouchEnd('ArrowRight'));
-        touchRight.addEventListener('mousedown', handleTouchStart('ArrowRight'));
-        touchRight.addEventListener('mouseup', handleTouchEnd('ArrowRight'));
-        
-        touchJump.addEventListener('touchstart', handleTouchStart('ArrowUp'));
-        touchJump.addEventListener('touchend', handleTouchEnd('ArrowUp'));
-        touchJump.addEventListener('mousedown', handleTouchStart('ArrowUp'));
-        touchJump.addEventListener('mouseup', handleTouchEnd('ArrowUp'));
-        
-        touchAttack.addEventListener('touchstart', handleTouchStart('TouchAttack'));
-        touchAttack.addEventListener('touchend', handleTouchEnd('TouchAttack'));
-        touchAttack.addEventListener('mousedown', handleTouchStart('TouchAttack'));
-        touchAttack.addEventListener('mouseup', handleTouchEnd('TouchAttack'));
-        
-        touchSpecial.addEventListener('touchstart', handleTouchStart('TouchSpecial'));
-        touchSpecial.addEventListener('touchend', handleTouchEnd('TouchSpecial'));
-        touchSpecial.addEventListener('mousedown', handleTouchStart('TouchSpecial'));
-        touchSpecial.addEventListener('mouseup', handleTouchEnd('TouchSpecial'));
+                if (control === 'TouchAttack') this.player.attack();
+                if (control === 'TouchSpecial') this.player.specialAttack();
+            });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[control] = false; });
+            btn.addEventListener('mousedown', (e) => {
+                this.keys[control] = true;
+                if (control === 'TouchAttack') this.player.attack();
+                if (control === 'TouchSpecial') this.player.specialAttack();
+            });
+            btn.addEventListener('mouseup', () => { this.keys[control] = false; });
+        }
     }
     
     update() {
         if (this.gameState !== 'playing') return;
-        
-        this.player.update(this.keys, this.gravity, this.friction, this.width, this.height);
+        this.player.update(this.keys, this.gravity, this.width, this.height);
         this.enemy.update(this.player, this.width, this.height);
-        
         this.checkCollision();
         this.checkEnemyDefeated();
-        
-        this.particles.forEach((p, index) => {
-            p.update();
-            if (p.life <= 0) {
-                this.particles.splice(index, 1);
-            }
-        });
+        this.particles = this.particles.filter(p => p.life > 0);
+        this.particles.forEach(p => p.update());
     }
     
     checkCollision() {
@@ -158,8 +98,7 @@ class Game {
         const enemyHitbox = this.enemy.getHitbox();
         
         if (this.player.isAttacking && !this.player.attackHit) {
-            const attackBox = this.player.getAttackBox();
-            if (this.isColliding(attackBox, enemyHitbox)) {
+            if (this.isColliding(this.player.getAttackBox(), enemyHitbox)) {
                 this.enemy.takeDamage(this.player.attackDamage);
                 this.player.attackHit = true;
                 this.createHitParticles(this.enemy.x, this.enemy.y, 'red');
@@ -167,8 +106,7 @@ class Game {
         }
         
         if (this.player.isSpecialAttacking && !this.player.specialHit) {
-            const specialBox = this.player.getSpecialAttackBox();
-            if (this.isColliding(specialBox, enemyHitbox)) {
+            if (this.isColliding(this.player.getSpecialAttackBox(), enemyHitbox)) {
                 this.enemy.takeDamage(this.player.specialDamage);
                 this.player.specialHit = true;
                 this.createHitParticles(this.enemy.x, this.enemy.y, 'blue');
@@ -176,8 +114,7 @@ class Game {
         }
         
         if (this.enemy.isAttacking && !this.enemy.attackHit) {
-            const enemyAttackBox = this.enemy.getAttackBox();
-            if (this.isColliding(enemyAttackBox, playerHitbox)) {
+            if (this.isColliding(this.enemy.getAttackBox(), playerHitbox)) {
                 this.player.takeDamage(this.enemy.attackDamage);
                 this.enemy.attackHit = true;
                 this.createHitParticles(this.player.x, this.player.y, 'orange');
@@ -186,10 +123,7 @@ class Game {
     }
     
     isColliding(box1, box2) {
-        return box1.x < box2.x + box2.width &&
-               box1.x + box1.width > box2.x &&
-               box1.y < box2.y + box2.height &&
-               box1.y + box1.height > box2.y;
+        return box1.x < box2.x + box2.width && box1.x + box1.width > box2.x && box1.y < box2.y + box2.height && box1.y + box1.height > box2.y;
     }
     
     checkEnemyDefeated() {
@@ -197,12 +131,9 @@ class Game {
             this.score += 100;
             this.enemiesDefeated++;
             this.updateScore();
-            
             this.createExplosion(this.enemy.x + this.enemy.width / 2, this.enemy.y + this.enemy.height / 2);
-            
-            const enhancement = this.enemiesDefeated;
-
-            this.enemy = new Enemy(this.width - 150, this.height - 150, enhancement);
+            const difficulty = Math.min(this.enemiesDefeated * 0.1, 0.5);
+            this.enemy = new Enemy(this.width - 150, this.height - 150, difficulty);
         }
         
         if (this.player.health <= 0) {
@@ -211,9 +142,7 @@ class Game {
     }
     
     createHitParticles(x, y, color) {
-        for (let i = 0; i < 5; i++) {
-            this.particles.push(new Particle(x, y, color));
-        }
+        for (let i = 0; i < 5; i++) this.particles.push(new Particle(x, y, color));
     }
     
     createExplosion(x, y) {
@@ -224,12 +153,9 @@ class Game {
     
     render() {
         this.ctx.clearRect(0, 0, this.width, this.height);
-        
         this.drawBackground();
-        
         this.player.render(this.ctx);
         this.enemy.render(this.ctx);
-        
         this.particles.forEach(p => p.render(this.ctx));
     }
     
@@ -244,16 +170,16 @@ class Game {
         this.ctx.fillStyle = '#5a9a5a';
         this.ctx.fillRect(0, this.height - 50, this.width, 50);
         
-        this.drawClouds();
-        this.drawTrees();
-    }
-    
-    drawClouds() {
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         this.drawCloud(100, 60, 50);
         this.drawCloud(300, 80, 40);
         this.drawCloud(550, 50, 60);
         this.drawCloud(700, 70, 35);
+        
+        this.drawTree(50, this.height - 50, 30);
+        this.drawTree(150, this.height - 50, 25);
+        this.drawTree(650, this.height - 50, 35);
+        this.drawTree(750, this.height - 50, 28);
     }
     
     drawCloud(x, y, size) {
@@ -262,13 +188,6 @@ class Game {
         this.ctx.arc(x + size * 0.8, y - size * 0.2, size * 0.7, 0, Math.PI * 2);
         this.ctx.arc(x + size * 1.5, y, size * 0.8, 0, Math.PI * 2);
         this.ctx.fill();
-    }
-    
-    drawTrees() {
-        this.drawTree(50, this.height - 50, 30);
-        this.drawTree(150, this.height - 50, 25);
-        this.drawTree(650, this.height - 50, 35);
-        this.drawTree(750, this.height - 50, 28);
     }
     
     drawTree(x, y, size) {
@@ -303,13 +222,11 @@ class Game {
         this.gameState = 'playing';
         document.getElementById('startScreen').classList.add('hidden');
         document.getElementById('gameOverScreen').classList.add('hidden');
-        
         this.player = new Player(100, this.height - 150);
         this.enemy = new Enemy(this.width - 150, this.height - 150);
         this.score = 0;
         this.enemiesDefeated = 0;
         this.particles = [];
-        
         this.updateHealthBars();
         this.updateScore();
     }
@@ -333,10 +250,8 @@ class Player {
         this.speed = 5;
         this.jumpForce = -12;
         this.isJumping = false;
-        
         this.health = 100;
         this.maxHealth = 100;
-        
         this.isAttacking = false;
         this.isSpecialAttacking = false;
         this.attackTimer = 0;
@@ -345,32 +260,20 @@ class Player {
         this.specialHit = false;
         this.attackDamage = 15;
         this.specialDamage = 30;
-        
         this.facingRight = true;
         this.color = '#4a90d9';
         this.attackColor = '#6ab7ff';
         this.specialColor = '#00d4ff';
     }
     
-    update(keys, gravity, friction, maxWidth, maxHeight) {
+    update(keys, gravity, maxWidth, maxHeight) {
         this.velocityX = 0;
         
-        if (keys['ArrowLeft']) {
-            this.velocityX = -this.speed;
-            this.facingRight = false;
-        }
-        if (keys['ArrowRight']) {
-            this.velocityX = this.speed;
-            this.facingRight = true;
-        }
-        
-        if (keys['ArrowUp'] && !this.isJumping) {
-            this.velocityY = this.jumpForce;
-            this.isJumping = true;
-        }
+        if (keys['ArrowLeft']) { this.velocityX = -this.speed; this.facingRight = false; }
+        if (keys['ArrowRight']) { this.velocityX = this.speed; this.facingRight = true; }
+        if (keys['ArrowUp'] && !this.isJumping) { this.velocityY = this.jumpForce; this.isJumping = true; }
         
         this.velocityY += gravity;
-        
         this.x += this.velocityX;
         this.y += this.velocityY;
         
@@ -383,35 +286,16 @@ class Player {
             this.isJumping = false;
         }
         
-        if (this.isAttacking) {
-            this.attackTimer--;
-            if (this.attackTimer <= 0) {
-                this.isAttacking = false;
-                this.attackHit = false;
-            }
-        }
-        
-        if (this.isSpecialAttacking) {
-            this.specialTimer--;
-            if (this.specialTimer <= 0) {
-                this.isSpecialAttacking = false;
-                this.specialHit = false;
-            }
-        }
+        if (this.isAttacking && --this.attackTimer <= 0) { this.isAttacking = false; this.attackHit = false; }
+        if (this.isSpecialAttacking && --this.specialTimer <= 0) { this.isSpecialAttacking = false; this.specialHit = false; }
     }
     
     attack() {
-        if (!this.isAttacking && !this.isSpecialAttacking) {
-            this.isAttacking = true;
-            this.attackTimer = 15;
-        }
+        if (!this.isAttacking && !this.isSpecialAttacking) { this.isAttacking = true; this.attackTimer = 15; }
     }
     
     specialAttack() {
-        if (!this.isAttacking && !this.isSpecialAttacking) {
-            this.isSpecialAttacking = true;
-            this.specialTimer = 20;
-        }
+        if (!this.isAttacking && !this.isSpecialAttacking) { this.isSpecialAttacking = true; this.specialTimer = 20; }
     }
     
     takeDamage(damage) {
@@ -420,17 +304,9 @@ class Player {
         game.updateHealthBars();
     }
     
-    getHitbox() {
-        return {
-            x: this.x + 5,
-            y: this.y + 5,
-            width: this.width - 10,
-            height: this.height - 5
-        };
-    }
+    getHitbox() { return { x: this.x + 5, y: this.y + 5, width: this.width - 10, height: this.height - 5 }; }
     
     getAttackBox() {
-        const direction = this.facingRight ? 1 : -1;
         return {
             x: this.facingRight ? this.x + this.width : this.x - 30,
             y: this.y + 10,
@@ -440,7 +316,6 @@ class Player {
     }
     
     getSpecialAttackBox() {
-        const direction = this.facingRight ? 1 : -1;
         return {
             x: this.facingRight ? this.x + this.width : this.x - 50,
             y: this.y,
@@ -451,12 +326,7 @@ class Player {
     
     render(ctx) {
         ctx.save();
-        
-        if (!this.facingRight) {
-            ctx.translate(this.x + this.width, this.y);
-            ctx.scale(-1, 1);
-            ctx.translate(-this.x, -this.y);
-        }
+        if (!this.facingRight) { ctx.translate(this.x + this.width, this.y); ctx.scale(-1, 1); ctx.translate(-this.x, -this.y); }
         
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -486,8 +356,7 @@ class Player {
             ctx.fillStyle = this.specialColor;
             ctx.shadowColor = this.specialColor;
             ctx.shadowBlur = 10;
-            const attackX = this.x + this.width;
-            ctx.fillRect(attackX, this.y, 40, this.height);
+            ctx.fillRect(this.x + this.width, this.y, 40, this.height);
             ctx.shadowBlur = 0;
         }
         
@@ -496,112 +365,80 @@ class Player {
 }
 
 class Enemy {
-    constructor(x, y, enhancement = 0) {
+    constructor(x, y, difficulty = 0) {
         this.x = x;
         this.y = y;
         this.width = 50;
         this.height = 80;
         this.velocityX = 0;
         this.velocityY = 0;
-        
-        const boost = 1 + enhancement * 0.01;
-        
-        this.speed = 2 * boost;
+        this.speed = 2 + difficulty;
         this.jumpForce = -10;
         this.isJumping = false;
-        
-        this.health = Math.floor(80 * boost);
+        this.health = 80 + difficulty * 20;
         this.maxHealth = this.health;
-        
         this.isAttacking = false;
         this.attackTimer = 0;
         this.attackHit = false;
-        this.attackDamage = Math.floor(10 * boost);
-        
+        this.attackDamage = 10 + difficulty * 5;
         this.facingRight = false;
-        this.color = this.getColorByEnhancement(enhancement);
+        this.color = '#e74c3c';
         this.attackColor = '#ff6b6b';
-        
         this.aiTimer = 0;
         this.aiAction = 'idle';
-        this.enhancement = enhancement;
-        this.boost = boost;
-    }
-    
-    getColorByEnhancement(enhancement) {
-        if (enhancement >= 20) return '#ff00ff';
-        if (enhancement >= 15) return '#00ffff';
-        if (enhancement >= 10) return '#ff4444';
-        if (enhancement >= 5) return '#ff8800';
-        return '#e74c3c';
+        this.difficulty = difficulty;
     }
     
     update(player, maxWidth, maxHeight) {
         this.aiTimer++;
-        
         const dx = player.x - this.x;
-        const dy = player.y - this.y;
         
-        const aiFrequency = Math.max(30, 60 - this.enhancement);
-        const attackRange = 150 + this.enhancement * 5;
-        const jumpChance = 0.2 + this.enhancement * 0.02;
-        
-        if (this.aiTimer > aiFrequency) {
+        if (this.aiTimer > 60) {
             this.aiTimer = 0;
-            
-            if (Math.abs(dx) < attackRange) {
-                this.aiAction = 'attack';
-            } else if (Math.abs(dx) < 300 && Math.random() < jumpChance) {
-                this.aiAction = 'jump';
-            } else {
-                this.aiAction = 'move';
-            }
+            if (Math.abs(dx) < 200) this.aiAction = 'attack';
+            else if (Math.abs(dx) < 300 && Math.random() < 0.3 + this.difficulty) this.aiAction = 'jump';
+            else this.aiAction = 'move';
         }
         
         this.velocityX = 0;
         
         if (this.aiAction === 'move') {
-            if (dx > 0) {
-                this.velocityX = this.speed;
-                this.facingRight = true;
-            } else {
-                this.velocityX = -this.speed;
-                this.facingRight = false;
-            }
+            if (dx > 0) { this.velocityX = this.speed; this.facingRight = true; }
+            else { this.velocityX = -this.speed; this.facingRight = false; }
         } else if (this.aiAction === 'attack') {
             if (Math.abs(dx) > 30) {
-                if (dx > 0) {
-                    this.velocityX = this.speed;
-                    this.facingRight = true;
-                } else {
-                    this.velocityX = -this.speed;
-                    this.facingRight = false;
-                }
-            } else {
-                this.attack();
-            }
+                if (dx > 0) { this.velocityX = this.speed; this.facingRight = true; }
+                else { this.velocityX = -this.speed; this.facingRight = false; }
+            } else this.attack();
         }
         
-        if (this.aiAction === 'jump' && !this.isJumping) {
-            this.velocityY = this.jumpForce;
-            this.isJumping = true;
-        }
+        if (this.aiAction === 'jump' && !this.isJumping) { this.velocityY = this.jumpForce; this.isJumping = true; }
         
         this.velocityY += 0.5;
+        this.x += this.velocityX;
+        this.y += this.velocityY;
+        
+        if (this.x < 0) this.x = 0;
+        if (this.x + this.width > maxWidth) this.x = maxWidth - this.width;
+        
+        if (this.y + this.height >= maxHeight - 50) {
+            this.y = maxHeight - 50 - this.height;
+            this.velocityY = 0;
+            this.isJumping = false;
+        }
+        
+        if (this.isAttacking && --this.attackTimer <= 0) { this.isAttacking = false; this.attackHit = false; }
+    }
+    
+    attack() { if (!this.isAttacking) { this.isAttacking = true; this.attackTimer = 12; } }
+    
     takeDamage(damage) {
         this.health -= damage;
         if (this.health < 0) this.health = 0;
         game.updateHealthBars();
     }
     
-    getHitbox() {
-        return {
-            x: this.x + 5,
-            y: this.y + 5,
-            width: this.width - 10,
-            height: this.height - 5
-        };
-    }
+    getHitbox() { return { x: this.x + 5, y: this.y + 5, width: this.width - 10, height: this.height - 5 }; }
     
     getAttackBox() {
         return {
@@ -614,12 +451,7 @@ class Enemy {
     
     render(ctx) {
         ctx.save();
-        
-        if (!this.facingRight) {
-            ctx.translate(this.x + this.width, this.y);
-            ctx.scale(-1, 1);
-            ctx.translate(-this.x, -this.y);
-        }
+        if (!this.facingRight) { ctx.translate(this.x + this.width, this.y); ctx.scale(-1, 1); ctx.translate(-this.x, -this.y); }
         
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
@@ -690,14 +522,7 @@ class Particle {
 
 let game;
 
-function startGame() {
-    game.start();
-}
+function startGame() { game.start(); }
+function restartGame() { game.start(); }
 
-function restartGame() {
-    game.start();
-}
-
-window.addEventListener('load', () => {
-    game = new Game();
-});
+window.addEventListener('load', () => { game = new Game(); });
